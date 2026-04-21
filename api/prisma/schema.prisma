@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Certificate {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  ownerName    String?
+  parcelNumber String?
+  sheetNumber  String?
+  areaM2       Float?
+  address      String?
+  purpose      String?
+  expiryDate   DateTime?
+
+  ocrRawText    String?
+  ocrProvider   String  @default("google_vision")
+  ocrConfidence Float?
+
+  parcelDiagram     ParcelDiagram?
+  originalImagePath String?
+
+  job Job?
+
+  @@index([ownerName])
+  @@index([parcelNumber])
+  @@index([createdAt])
+  @@map("certificates")
+}
+
+model ParcelDiagram {
+  id            String  @id @default(uuid())
+  certificateId String  @unique
+
+  vertices         Json
+  edges            Json
+  confidence       Float
+  vertexCount      Int
+  extractionError  String?
+  diagramImagePath String?
+
+  certificate Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+
+  @@map("parcel_diagrams")
+}
+
+model Job {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  status            JobStatus @default(QUEUED)
+  progress          Int       @default(0)
+  error             String?
+  uploadedImagePath String?
+
+  certificateId String?      @unique
+  certificate   Certificate? @relation(fields: [certificateId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("jobs")
+}
+
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
