@@ -19,14 +19,19 @@ export class TesseractProvider {
     const form = new FormData();
     form.append('image', buffer, { filename: 'image.jpg', contentType: 'image/jpeg' });
 
-    const response = await firstValueFrom(
-      this.http.post<{ text: string }>(`${visionUrl}/ocr/extract`, form, {
-        headers: form.getHeaders(),
-        timeout: 30000,
-      }),
-    );
-
-    this.logger.debug(`Tesseract extracted ${response.data.text.length} chars`);
-    return response.data.text;
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ text: string }>(`${visionUrl}/ocr/extract`, form, {
+          headers: form.getHeaders(),
+          timeout: 10000,
+        }),
+      );
+      this.logger.debug(`Tesseract extracted ${response.data.text.length} chars`);
+      return response.data.text;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Tesseract OCR unavailable (${message}), returning empty text`);
+      return '';
+    }
   }
 }

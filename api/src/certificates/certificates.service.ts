@@ -9,6 +9,9 @@ export interface CreateCertificateInput {
   areaM2?: number | null;
   address?: string | null;
   purpose?: string | null;
+  landUseForm?: string | null;
+  expiryYear?: string | null;
+  landOrigin?: string | null;
   ocrRawText?: string | null;
   ocrProvider?: string;
   originalImagePath?: string;
@@ -21,7 +24,9 @@ export interface UpdateCertificateInput {
   areaM2?: number;
   address?: string;
   purpose?: string;
-  expiryDate?: string;
+  landUseForm?: string;
+  expiryYear?: string;
+  landOrigin?: string;
 }
 
 @Injectable()
@@ -39,8 +44,10 @@ export class CertificatesService {
         vertices: diagram.vertices as object[],
         edges: diagram.edges as object[],
         confidence: diagram.confidence,
-        vertexCount: diagram.vertexCount,
+        vertexCount: diagram.vertexCount ?? diagram.vertices.length,
         diagramImagePath,
+        extractionSource: diagram.source ?? 'polygon_detection',
+        coordinatesVn2000: diagram.coordinatesVn2000 ? (diagram.coordinatesVn2000 as object[]) : undefined,
       },
     });
   }
@@ -84,10 +91,7 @@ export class CertificatesService {
     await this.findById(id);
     return this.prisma.certificate.update({
       where: { id },
-      data: {
-        ...input,
-        expiryDate: input.expiryDate ? new Date(input.expiryDate) : undefined,
-      },
+      data: { ...input },
       include: { parcelDiagram: true },
     });
   }

@@ -19,7 +19,9 @@ model Certificate {
   areaM2       Float?
   address      String?
   purpose      String?
-  expiryDate   DateTime?
+  landUseForm  String?   // hình thức sử dụng
+  expiryYear   String?   // thời hạn sử dụng (năm, e.g. "2022" hoặc "Lâu dài")
+  landOrigin   String?   // nguồn gốc sử dụng
 
   ocrRawText    String?
   ocrProvider   String  @default("google_vision")
@@ -46,6 +48,8 @@ model ParcelDiagram {
   vertexCount      Int
   extractionError  String?
   diagramImagePath String?
+  extractionSource String  @default("polygon_detection")  // 'coordinate_table' | 'polygon_detection'
+  coordinatesVn2000 Json?  // raw VN2000 coords from table, null if polygon detection
 
   certificate Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
 

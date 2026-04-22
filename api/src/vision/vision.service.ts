@@ -26,6 +26,8 @@ export interface ParcelDiagramResult {
   vertexCount: number;
   diagramImageBase64?: string;
   error?: string;
+  source?: 'coordinate_table' | 'polygon_detection';
+  coordinatesVn2000?: Array<{ point: number; northing: number; easting: number; edge_m: number | null }>;
 }
 
 @Injectable()
@@ -49,17 +51,30 @@ export class VisionService {
     form.append('image', buffer, { filename: 'image.jpg', contentType: 'image/jpeg' });
 
     try {
-      const response = await this.withRetry(
+      const response = await this.withRetry(  // 1 attempt in dev until vision-service is up
         () => firstValueFrom(
-          this.http.post<ParcelDiagramResult>(`${visionUrl}/parcel/extract`, form, {
+          this.http.post<Record<string, unknown>>(`${visionUrl}/parcel/extract`, form, {
             headers: form.getHeaders(),
-            timeout: 60000,
+            timeout: 15000,
           }),
         ),
-        3,
+        1,
       );
-      this.logger.log(`Parcel extraction: ${response.data.vertexCount} vertices, confidence ${response.data.confidence}`);
-      return response.data;
+      // Python returns snake_case — map to camelCase interface
+      const raw = response.data;
+      const result: ParcelDiagramResult = {
+        success: raw['success'] as boolean,
+        vertices: (raw['vertices'] as ParcelVertex[]) ?? [],
+        edges: (raw['edges'] as ParcelEdge[]) ?? [],
+        confidence: (raw['confidence'] as number) ?? 0,
+        vertexCount: (raw['vertex_count'] as number) ?? (raw['vertexCount'] as number) ?? 0,
+        diagramImageBase64: (raw['diagram_image_b64'] as string) ?? undefined,
+        source: raw['source'] as 'coordinate_table' | 'polygon_detection' | undefined,
+        coordinatesVn2000: raw['coordinates_vn2000'] as ParcelDiagramResult['coordinatesVn2000'],
+        error: raw['error'] as string | undefined,
+      };
+      this.logger.log(`Parcel extraction (${result.source ?? 'unknown'}): ${result.vertexCount} vertices, confidence ${result.confidence}`);
+      return result;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.error(`Vision service failed: ${message}`);
