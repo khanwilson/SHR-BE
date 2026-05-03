@@ -13,7 +13,7 @@ export const configuration = () => ({
   },
   ocr: {
     provider: (process.env.OCR_PROVIDER ?? 'google_vision') as 'google_vision' | 'tesseract',
-    googleCredentials: process.env.GOOGLE_APPLICATION_CREDENTIALS ?? '',
+    googleApiKey: process.env.GOOGLE_API_KEY ?? '',
   },
   storage: {
     path: process.env.STORAGE_PATH ?? './storage',

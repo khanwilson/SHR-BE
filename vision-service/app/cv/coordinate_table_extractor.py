@@ -211,9 +211,9 @@ def _parse_fallback_regex(text: str) -> list[dict]:
     eastings: list[float] = []
     edges: list[float] = []
 
-    # --- Northings: 5-7 digit sequences starting with 12 ---
-    for m in re.finditer(r"\b12[0-9]{3,5}\b", text):
-        raw = m.group(0)
+    # --- Northings: 5-7 digit sequences starting with 12, with optional decimal ---
+    for m in re.finditer(r"\b12[0-9]{3,5}(?:[.,][0-9]{1,2})?\b", text):
+        raw = _fix_ocr_digits(m.group(0))
         try:
             v = float(raw)
         except ValueError:
@@ -226,8 +226,9 @@ def _parse_fallback_regex(text: str) -> list[dict]:
             northings.append(v)
 
     # Also try 7-digit northings that passed the ×10 threshold
-    for m in re.finditer(r"\b121[0-9]{4}\b", text):
-        v = float(m.group(0))
+    for m in re.finditer(r"\b121[0-9]{4}(?:[.,][0-9]{1,2})?\b", text):
+        raw = _fix_ocr_digits(m.group(0))
+        v = float(raw)
         if 1_210_000 <= v <= 1_219_999 and v not in northings:
             northings.append(v)
 
@@ -284,7 +285,10 @@ def _rows_to_vertices(rows: list[dict]) -> tuple[list[dict], list[dict]]:
     Convert VN2000 coordinates to normalised 0-1 display vertices.
     VN2000: X = northing (N↑), Y = easting (E→).
     Screen: x increases east, y increases south (northing inverted).
+    Edge lengths are computed from coordinates — more reliable than OCR-parsed values.
     """
+    import math
+
     eastings = [r["easting"] for r in rows]
     northings = [r["northing"] for r in rows]
 
@@ -306,13 +310,32 @@ def _rows_to_vertices(rows: list[dict]) -> tuple[list[dict], list[dict]]:
         {
             "from": i,
             "to": (i + 1) % len(rows),
-            "length_m": rows[i]["edge_m"],
-            "confidence": 0.9 if rows[i]["edge_m"] is not None else 0.0,
+            "length_m": round(math.hypot(
+                rows[(i + 1) % len(rows)]["northing"] - rows[i]["northing"],
+                rows[(i + 1) % len(rows)]["easting"] - rows[i]["easting"],
+            ), 2),
+            "confidence": 0.9,
         }
         for i in range(len(rows))
     ]
 
     return vertices, edges
+
+
+def extract_from_ocr_text(text: str) -> dict:
+    """Parse coordinate table directly from already-extracted OCR text (e.g. Google Vision)."""
+    rows = _parse_fallback_regex(text)
+    if len(rows) < 3:
+        return {"vertices": [], "confidence": 0.0, "vertex_count": 0, "source": "coordinate_table"}
+    vertices, edges = _rows_to_vertices(rows)
+    return {
+        "vertices": vertices,
+        "edges": edges,
+        "confidence": round(min(1.0, 0.5 + len(rows) * 0.1), 2),
+        "vertex_count": len(vertices),
+        "source": "coordinate_table",
+        "coordinates_vn2000": rows,
+    }
 
 
 def extract_from_coordinate_table(img: np.ndarray) -> dict:

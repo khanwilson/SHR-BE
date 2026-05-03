@@ -43,7 +43,7 @@ export class ScanProcessor extends WorkerHost {
 
       // Step 3: OpenCV parcel diagram — non-fatal, vision-service may not be running
       await this.jobs.updateProgress(jobId, 60);
-      const diagram = await this.vision.extractParcelDiagram(imagePath);
+      const diagram = await this.vision.extractParcelDiagram(imagePath, text);
 
       // Step 4: Persist certificate
       await this.jobs.updateProgress(jobId, 80);

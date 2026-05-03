@@ -39,16 +39,17 @@ export class VisionService {
     private config: ConfigService,
   ) {}
 
-  async extractParcelDiagram(imagePath: string): Promise<ParcelDiagramResult> {
+  async extractParcelDiagram(imagePath: string, ocrText?: string): Promise<ParcelDiagramResult> {
     const { readFile } = await import('fs/promises');
     const buffer = await readFile(imagePath);
-    return this.extractParcelDiagramFromBuffer(buffer);
+    return this.extractParcelDiagramFromBuffer(buffer, ocrText);
   }
 
-  async extractParcelDiagramFromBuffer(buffer: Buffer): Promise<ParcelDiagramResult> {
+  async extractParcelDiagramFromBuffer(buffer: Buffer, ocrText?: string): Promise<ParcelDiagramResult> {
     const visionUrl = this.config.get<string>('visionService.url');
     const form = new FormData();
     form.append('image', buffer, { filename: 'image.jpg', contentType: 'image/jpeg' });
+    if (ocrText) form.append('ocr_text', ocrText);
 
     try {
       const response = await this.withRetry(  // 1 attempt in dev until vision-service is up

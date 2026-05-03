@@ -17,10 +17,7 @@ export class JobsController {
       error: job.error ?? undefined,
       certificateId: job.certificateId ?? undefined,
       result: job.status === 'COMPLETED' && job.certificate
-        ? {
-            certificate: job.certificate,
-            parcelDiagram: job.certificate.parcelDiagram ?? null,
-          }
+        ? { certificate: job.certificate }
         : undefined,
     };
   }

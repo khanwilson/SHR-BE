@@ -6,9 +6,13 @@ export class GoogleVisionProvider {
   private readonly logger = new Logger(GoogleVisionProvider.name);
   private client: ImageAnnotatorClient | null = null;
 
+  isAvailable(): boolean {
+    return !!process.env.GOOGLE_API_KEY;
+  }
+
   private getClient(): ImageAnnotatorClient {
     if (!this.client) {
-      this.client = new ImageAnnotatorClient();
+      this.client = new ImageAnnotatorClient({ apiKey: process.env.GOOGLE_API_KEY });
     }
     return this.client;
   }
