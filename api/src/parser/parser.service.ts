@@ -38,10 +38,10 @@ export class ParserService {
 
   private extractParcelNumber(text: string): string | null {
     // Format: "Thửa đất số: 123" or "thửa số: 45"
-    // OCR may read "Thửa" as "Fhửa", "Thứa", etc. — match loosely
-    const m = text.match(/th[uưứ][aả]\s+đ[aấ]t\s+s[oố][:\s]+([\d/]+)/i)
-      ?? text.match(/th[uưứ][aả]\s+s[oố][:\s]+([\d/]+)/i)
-      ?? text.match(/s[oố]\s+th[uưứ][aả][:\s]+([\d/]+)/i);
+    // [uưứừửữự] covers all OCR variants of the "ư" vowel in "Thửa"
+    const m = text.match(/th[uưứừửữự][aảàã]\s+đ[aấầậ]t\s+s[oố][:\s]+([\d/]+)/i)
+      ?? text.match(/th[uưứừửữự][aảàã]\s+s[oố][:\s]+([\d/]+)/i)
+      ?? text.match(/s[oố]\s+th[uưứừửữự][aảàã][:\s]+([\d/]+)/i);
     return m?.[1]?.trim() ?? null;
   }
 
@@ -173,8 +173,8 @@ export class ParserService {
       /[OÔ]ng\s*\/\s*[Bb][aà][:\s]+([^\n,]{5,100})/i,
       // "Ông: <name>" — only when "Ông" starts the line or comes after ":"
       /(?:^|:\s*|\n)[OÔ]ng[:\s]+([^\n,]{5,60})/m,
-      // "Bà: <name>" — same rule
-      /(?:^|:\s*|\n)[Bb][aà][:\s]+([^\n,]{5,60})/m,
+      // "Bà: <name>" — require accent à to avoid matching "Ba trăm..." (spelled-out numbers)
+      /(?:^|:\s*|\n)[Bb]à[:\s]+([^\n,]{5,60})/m,
     ];
     for (const p of patterns) {
       const m = text.match(p);
